@@ -1,9 +1,9 @@
-// src/app/analysis/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import PhotoDebugView from '@/components/PhotoDebugView';
 
 export default function AnalysisPage() {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function AnalysisPage() {
   const [error, setError] = useState('');
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
+  const [analyzedPhotos, setAnalyzedPhotos] = useState([]);
+  const [showDebugMode, setShowDebugMode] = useState(false);
 
   useEffect(() => {
     // Check if we have session data
@@ -63,6 +65,7 @@ export default function AnalysisPage() {
         sessionStorage.setItem('petTales_themes', JSON.stringify(response.data.themes));
 
         setThemes(response.data.themes);
+        setAnalyzedPhotos(response.data.analyzedPhotos);
 
         // Auto-select the first theme if available
         if (response.data.themes.length > 0) {
@@ -94,9 +97,56 @@ export default function AnalysisPage() {
     router.push('/story-editor');
   };
 
+  // Helper function to display rich theme details
+  const renderThemeDetails = (theme) => {
+    const details = [];
+
+    // Show location & activity
+    details.push(`Location: ${theme.location}, Activity: ${theme.mainActivity}`);
+
+    // Add holiday if present
+    if (theme.holiday) {
+      details.push(`Holiday: ${theme.holiday}`);
+    }
+
+    // Add occasion if present
+    if (theme.occasion) {
+      details.push(`Occasion: ${theme.occasion}`);
+    }
+
+    // Add context description if present
+    if (theme.context) {
+      details.push(theme.context);
+    }
+
+    return details.join(' • ');
+  };
+
+  // Toggle debug mode
+  const toggleDebugMode = () => {
+    setShowDebugMode(!showDebugMode);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Analyzing Your Pet Photos</h1>
+      <h1 className="text-3xl font-bold text-center mb-4">Analyzing Your Pet Photos</h1>
+
+      {/* Debug mode toggle and advanced debug page links */}
+      <div className="flex justify-end mb-2 space-x-4">
+        <button
+          onClick={toggleDebugMode}
+          className="text-xs px-2 py-1 text-blue-600 hover:text-blue-800 underline"
+        >
+          {showDebugMode ? 'Hide AI Analysis Details' : 'Show AI Analysis Details'}
+        </button>
+
+        <a
+          href="/debug"
+          className="text-xs px-2 py-1 bg-gray-100 text-blue-600 hover:text-blue-800 hover:bg-gray-200 rounded"
+        >
+          Advanced Debug Tools
+        </a>
+      </div>
 
       {isAnalyzing ? (
         <div className="max-w-md mx-auto text-center">
@@ -121,7 +171,7 @@ export default function AnalysisPage() {
               </svg>
             </div>
             <p className="text-sm text-gray-500">
-              Looking for activities, locations, and creating a storybook...
+              Discovering rich contexts like holidays, special occasions, and creating a storybook...
             </p>
           </div>
         </div>
@@ -139,6 +189,20 @@ export default function AnalysisPage() {
             </div>
           ) : (
             <>
+              {/* Debug View - This shows ALL the analysis data directly */}
+              {showDebugMode && analyzedPhotos.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold mb-4">AI Photo Analysis Results:</h2>
+                  {analyzedPhotos.map((photo, index) => (
+                    <PhotoDebugView
+                      key={photo.id || index}
+                      analysisData={photo}
+                      imageUrl={photo.originalImage}
+                    />
+                  ))}
+                </div>
+              )}
+
               <h2 className="text-xl font-semibold mb-6">We found these themes in your photos:</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -152,8 +216,10 @@ export default function AnalysisPage() {
                         : 'border-gray-200'}`}
                   >
                     <h3 className="text-lg font-medium mb-2">{theme.name}</h3>
+
+                    {/* Enhanced theme details display */}
                     <p className="text-gray-600 text-sm mb-3">
-                      Location: {theme.location}, Activity: {theme.mainActivity}
+                      {renderThemeDetails(theme)}
                     </p>
 
                     <div className="flex overflow-x-auto space-x-2 py-2">

@@ -1,9 +1,4 @@
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { stylizeImageWithFallback } from '@/lib/services/openai-service';
 
 /**
  * Style options for the pet illustrations
@@ -50,19 +45,11 @@ export const stylizeImage = async (imageBase64: string, style: string, petInfo: 
       prompt += ` The ${petInfo.type || 'pet'} ${petInfo.name ? `named ${petInfo.name}` : ''} should be the main focus.`;
     }
 
-    // Use DALL-E 3 to generate a stylized image
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      response_format: "b64_json"
-    });
+    return await stylizeImageWithFallback(imageBase64, style, prompt);
 
-    return response.data[0].b64_json;
   } catch (error) {
     console.error("Error stylizing image:", error);
-    throw new Error(`Failed to stylize image: ${(error as Error).message}`);
+    throw new Error(`Failed to stylize image: ${error.message}`);
   }
 };
 

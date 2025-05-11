@@ -1,9 +1,4 @@
-import OpenAI from 'openai';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { generateStoryWithFallback, editStoryStyleWithFallback } from '@/lib/services/openai-service';
 
 interface StoryPage {
   text: string;
@@ -76,18 +71,20 @@ export const generateStory = async (theme: Theme, petInfo: PetInfo, ownerInfo: O
       Make the story cute, simple, and engaging for children, written in present tense. Use the pet's name frequently.
     `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    });
+    return await generateStoryWithFallback(prompt);
 
-    return JSON.parse(response.choices[0].message.content) as Story;
   } catch (error) {
     console.error("Error generating story:", error);
-    throw new Error(`Failed to generate story: ${(error as Error).message}`);
+
+    // Return a basic fallback story
+    return {
+      title: `${petInfo.name}'s Adventure`,
+      pages: [
+        { text: `${petInfo.name} is having a wonderful day.` },
+        { text: `${petInfo.name} explores and has fun.` },
+        { text: `${petInfo.name} returns home happy.` }
+      ]
+    };
   }
 };
 
@@ -96,25 +93,10 @@ export const generateStory = async (theme: Theme, petInfo: PetInfo, ownerInfo: O
  */
 export const editStoryStyle = async (storyText: string, style: string): Promise<string> => {
   try {
-    const prompt = `
-      Edit this children's story text to make it ${style}:
-      
-      "${storyText}"
-      
-      Keep approximately the same length and maintain child-friendly language.
-    `;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
-      temperature: 0.7
-    });
-
-    return response.choices[0].message.content.trim();
+    return await editStoryStyleWithFallback(storyText, style);
   } catch (error) {
     console.error("Error editing story style:", error);
-    throw new Error(`Failed to edit story: ${(error as Error).message}`);
+    return storyText; // Return original text if editing fails
   }
 };
 

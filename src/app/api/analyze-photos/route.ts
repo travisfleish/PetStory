@@ -1,58 +1,61 @@
 import { NextResponse } from 'next/server';
-import { analyzePhoto, groupPhotosByTheme } from '@/lib/photoAnalysis';
+import { analyzePhoto } from '@/lib/photoAnalysis';
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const { photos } = data;
+    console.log('Single photo analysis API called for debugging');
 
-    if (!photos || !Array.isArray(photos) || photos.length === 0) {
+    const data = await request.json();
+    const { photo } = data;
+
+    if (!photo || !photo.base64) {
       return NextResponse.json(
-        { error: 'No photos provided or invalid format' },
+        { error: 'No photo provided or invalid format' },
         { status: 400 }
       );
     }
 
-    // Analyze each photo
-    const analysisPromises = photos.map(async (photo) => {
-      try {
-        const result = await analyzePhoto(photo.base64.split(',')[1]);
-        return {
-          ...result,
-          id: photo.id,
-          originalImage: photo.base64
-        };
-      } catch (error) {
-        console.error(`Error analyzing photo ${photo.id}:`, error);
-        return {
-          id: photo.id,
-          error: `Failed to analyze: ${error.message}`,
-          originalImage: photo.base64,
-          // Fallback values
-          petType: 'pet',
-          location: 'unknown',
-          activity: 'posing',
-          people: '',
-          objects: ''
-        };
-      }
-    });
+    console.log(`Analyzing single photo ${photo.id} for debugging purposes`);
 
-    const analyzedPhotos = await Promise.all(analysisPromises);
+    try {
+      // Process the base64 string to get the data part
+      const base64Data = photo.base64.split(',')[1] || photo.base64;
 
-    // Group photos by theme
-    const themes = groupPhotosByTheme(analyzedPhotos);
+      // Analyze the photo with full details
+      const result = await analyzePhoto(base64Data);
 
-    return NextResponse.json({
-      success: true,
-      analyzedPhotos,
-      themes
-    });
+      console.log('Debug analysis complete with full details');
+      console.log('==== DETAILED PHOTO ANALYSIS ====');
+      console.log(JSON.stringify(result, null, 2));
+      console.log('=================================');
+
+      // Add the ID to the result
+      const analyzedPhoto = {
+        ...result,
+        id: photo.id
+      };
+
+      return NextResponse.json({
+        success: true,
+        analyzedPhoto
+      });
+
+    } catch (error) {
+      console.error(`Error analyzing photo for debug:`, error);
+      console.error('Error stack:', error.stack);
+
+      return NextResponse.json({
+        success: false,
+        error: `Analysis failed: ${error.message}`
+      }, { status: 500 });
+    }
+
   } catch (error) {
-    console.error('Error in analyze-photos API:', error);
+    console.error('Error in analyze-photo debug API:', error);
+    console.error('Error stack:', error.stack);
 
     return NextResponse.json(
-      { error: `Failed to analyze photos: ${error.message}` },
+      { error: `Failed to analyze photo: ${error.message}` },
       { status: 500 }
     );
   }
