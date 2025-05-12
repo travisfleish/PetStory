@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import PhotoDebugView from '@/components/PhotoDebugView';
 
 export default function AnalysisPage() {
   const router = useRouter();
@@ -13,7 +12,6 @@ export default function AnalysisPage() {
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [analyzedPhotos, setAnalyzedPhotos] = useState([]);
-  const [showDebugMode, setShowDebugMode] = useState(false);
 
   useEffect(() => {
     // Check if we have session data
@@ -122,31 +120,9 @@ export default function AnalysisPage() {
     return details.join(' • ');
   };
 
-  // Toggle debug mode
-  const toggleDebugMode = () => {
-    setShowDebugMode(!showDebugMode);
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-4">Analyzing Your Pet Photos</h1>
-
-      {/* Debug mode toggle and advanced debug page links */}
-      <div className="flex justify-end mb-2 space-x-4">
-        <button
-          onClick={toggleDebugMode}
-          className="text-xs px-2 py-1 text-blue-600 hover:text-blue-800 underline"
-        >
-          {showDebugMode ? 'Hide AI Analysis Details' : 'Show AI Analysis Details'}
-        </button>
-
-        <a
-          href="/debug"
-          className="text-xs px-2 py-1 bg-gray-100 text-blue-600 hover:text-blue-800 hover:bg-gray-200 rounded"
-        >
-          Advanced Debug Tools
-        </a>
-      </div>
 
       {isAnalyzing ? (
         <div className="max-w-md mx-auto text-center">
@@ -189,20 +165,6 @@ export default function AnalysisPage() {
             </div>
           ) : (
             <>
-              {/* Debug View - This shows ALL the analysis data directly */}
-              {showDebugMode && analyzedPhotos.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold mb-4">AI Photo Analysis Results:</h2>
-                  {analyzedPhotos.map((photo, index) => (
-                    <PhotoDebugView
-                      key={photo.id || index}
-                      analysisData={photo}
-                      imageUrl={photo.originalImage}
-                    />
-                  ))}
-                </div>
-              )}
-
               <h2 className="text-xl font-semibold mb-6">We found these themes in your photos:</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

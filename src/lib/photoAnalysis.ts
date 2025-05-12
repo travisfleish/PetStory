@@ -55,7 +55,7 @@ interface Theme {
  */
 export const analyzePhoto = async (imageBase64: string): Promise<PhotoAnalysisResult> => {
   try {
-    // Much more open-ended prompt that encourages comprehensive analysis
+    // Much more explicit prompt with formatting instructions
     const prompt = `
       Analyze this photo comprehensively and return detailed information about the scene, focusing on the pet and context.
       
@@ -76,19 +76,15 @@ export const analyzePhoto = async (imageBase64: string): Promise<PhotoAnalysisRe
       
       Also include a brief, evocative description of the overall scene that could be used in a storybook.
       
-      Return as detailed JSON including all detected elements, with at minimum these keys: 
+      IMPORTANT: Return ONLY raw JSON with these keys (at minimum):
       petType, petBreed, location, activity, people, objects, holiday, occasion, season, mood, outfit, sceneDescription.
       
-      Be creative but accurate, and prioritize rich contextual details that would make for an interesting story.
+      Do not include any explanations, markdown formatting, or code blocks.
+      Your entire response should be valid JSON that can be directly parsed.
     `;
 
-    console.log('Starting comprehensive photo analysis with open-ended prompt...');
+    console.log('Starting comprehensive photo analysis...');
     const result = await analyzeImageWithVision(imageBase64, prompt);
-
-    // Add detailed console logging
-    console.log('==== DETAILED PHOTO ANALYSIS ====');
-    console.log(JSON.stringify(result, null, 2));
-    console.log('================================');
 
     return result;
 

@@ -5,137 +5,181 @@ let openaiInstance: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openaiInstance) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    console.log('Initializing OpenAI client with API key:', 
+      apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : 'MISSING');
+    
     openaiInstance = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: apiKey,
     });
   }
   return openaiInstance;
 }
 
 /**
- * Enhanced Vision analysis with fallback models and improved context detection
+ * Enhanced Vision analysis with improved error handling and JSON parsing
  */
 export async function analyzeImageWithVision(imageBase64: string, prompt: string) {
-  const openai = getOpenAIClient();
+  try {
+    console.log('Starting vision analysis, image base64 length:', imageBase64.length);
+    
+    const openai = getOpenAIClient();
+    
+    // Try models in order of preference
+    const modelsToTry = ["gpt-4o", "gpt-4-vision-preview", "gpt-4-turbo"];
 
-  // Try models in order of preference
-  const modelsToTry = ["gpt-4o", "gpt-4-turbo", "gpt-4"];
-
-  for (const model of modelsToTry) {
-    try {
-      console.log(`Attempting enhanced vision analysis with model: ${model}`);
-
-      const response = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert image analyzer specializing in detecting rich contextual elements like holidays, occasions, moods, and detailed scene descriptions. Focus on identifying elements that would create meaningful themes for storytelling. Always be thorough in identifying contextual details."
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.2 // Lower temperature for more consistent analysis
-      });
-
-      // For non-JSON output models, parse the text
+    for (const model of modelsToTry) {
       try {
-        return JSON.parse(response.choices[0].message.content || "{}");
-      } catch (parseError) {
-        console.warn(`Response not in JSON format from ${model}, attempting to parse manually`);
+        console.log(`Attempting vision analysis with model: ${model}`);
 
-        // Try to extract key information from text response
-        const content = response.choices[0].message.content || "";
+        const response = await openai.chat.completions.create({
+          model: model,
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert photo analyzer. Respond with clean JSON only, no markdown formatting, no explanation, no code blocks."
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageBase64}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.2
+        });
 
-        // Extract key-value pairs using regex
-        const extractedData: Record<string, string> = {};
-        const patterns = {
-          petType: /pet\s*(?:type|breed)?:\s*([^,\n.]+)/i,
-          location: /location:\s*([^,\n.]+)/i,
-          activity: /activity:\s*([^,\n.]+)/i,
-          holiday: /holiday:\s*([^,\n.]+)/i,
-          occasion: /occasion:\s*([^,\n.]+)/i,
-          people: /people:\s*([^,\n.]+)/i,
-          objects: /objects:\s*([^,\n.]+)/i,
-          mood: /mood:\s*([^,\n.]+)/i,
-          season: /season:\s*([^,\n.]+)/i,
-          timeOfDay: /time of day:\s*([^,\n.]+)/i,
-          outfit: /outfit:\s*([^,\n.]+)/i,
-          sceneDescription: /scene description:?\s*([^\n]+(?:\n[^\n]+)*)/i
-        };
-
-        for (const [key, pattern] of Object.entries(patterns)) {
-          const match = content.match(pattern);
-          if (match && match[1]) {
-            extractedData[key] = match[1].trim();
+        console.log(`Model ${model} responded successfully`);
+        console.log('Response content length:', response.choices[0].message.content?.length || 0);
+        console.log('First 100 chars of response:', response.choices[0].message.content?.substring(0, 100) || '');
+        
+        // Get the raw content
+        const rawContent = response.choices[0].message.content || "";
+        
+        // Try to extract JSON from the content (handling code blocks)
+        try {
+          // Handle content wrapped in code blocks (```json ... ```)
+          let jsonContent = rawContent;
+          
+          // Remove markdown code block markers if present
+          if (jsonContent.includes('```')) {
+            const jsonMatch = jsonContent.match(/```(?:json)?\s*([^`]+)```/s);
+            if (jsonMatch && jsonMatch[1]) {
+              jsonContent = jsonMatch[1].trim();
+            }
           }
-        }
-
-        // Add a fallback scene description if none was found
-        if (!extractedData.sceneDescription) {
-          const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
-          if (paragraphs.length > 0) {
-            extractedData.sceneDescription = paragraphs[paragraphs.length - 1].trim();
-          } else {
-            extractedData.sceneDescription = "A pet in an everyday scene.";
+          
+          const parsedResponse = JSON.parse(jsonContent);
+          console.log('Successfully parsed JSON response');
+          return parsedResponse;
+        } catch (parseError) {
+          console.warn(`Failed to parse response as JSON:`, parseError);
+          console.log('Raw response:', rawContent);
+          
+          // Create a more intelligent extraction method that handles both text and code blocks
+          let extractedData = {
+            petType: "pet",
+            location: "unknown",
+            activity: "posing",
+            people: "",
+            objects: "",
+            holiday: "",
+            occasion: "",
+            sceneDescription: "A pet in an everyday scene"
+          };
+          
+          // Try to extract JSON from code blocks first
+          if (rawContent.includes('```')) {
+            const jsonMatch = rawContent.match(/```(?:json)?\s*({[^`]+})```/s);
+            if (jsonMatch && jsonMatch[1]) {
+              try {
+                const jsonData = JSON.parse(jsonMatch[1].trim());
+                // If we successfully parse JSON from the code block, use it
+                extractedData = {
+                  ...extractedData,
+                  ...jsonData
+                };
+                console.log('Extracted JSON from code block successfully');
+                return extractedData;
+              } catch (e) {
+                console.warn('Failed to parse JSON from code block', e);
+              }
+            }
           }
+          
+          // If we get here, fall back to extracting fields from text
+          console.log('Falling back to text field extraction');
+          extractedData = {
+            petType: extractField(rawContent, "petType", "pet") || "pet",
+            petBreed: extractField(rawContent, "petBreed", "") || "",
+            location: extractField(rawContent, "location", "unknown") || "unknown",
+            activity: extractField(rawContent, "activity", "posing") || "posing",
+            people: extractField(rawContent, "people", "") || "",
+            objects: extractField(rawContent, "objects", "") || "",
+            holiday: extractField(rawContent, "holiday", "") || "",
+            occasion: extractField(rawContent, "occasion", "") || "",
+            season: extractField(rawContent, "season", "") || "",
+            mood: extractField(rawContent, "mood", "") || "",
+            sceneDescription: extractField(rawContent, "sceneDescription", 
+              "A pet in an everyday scene") || "A pet in an everyday scene"
+          };
+          
+          console.log('Extracted data from text response:', extractedData);
+          return extractedData;
         }
-
-        // Ensure minimum required fields
-        return {
-          petType: extractedData.petType || "pet",
-          location: extractedData.location || "unknown",
-          activity: extractedData.activity || "posing",
-          people: extractedData.people || "",
-          objects: extractedData.objects || "",
-          holiday: extractedData.holiday || "",
-          occasion: extractedData.occasion || "",
-          mood: extractedData.mood || "",
-          season: extractedData.season || "",
-          outfit: extractedData.outfit || "",
-          sceneDescription: extractedData.sceneDescription || "A pet in an everyday scene"
-        };
-      }
-
-    } catch (error) {
-      console.warn(`Model ${model} failed for vision:`, error.message);
-
-      // Only continue trying if it seems model-related
-      if (!error.message.includes('404') && !error.message.includes('not supported')) {
-        throw error;
+      } catch (modelError) {
+        console.error(`Model ${model} failed:`, modelError);
+        // Continue to next model
       }
     }
+    
+    // If all models failed
+    throw new Error('All models failed for vision analysis');
+    
+  } catch (error) {
+    console.error('Vision analysis error:', error);
+    throw error;
   }
-
-  // If all models failed, return a basic fallback
-  console.error("All models failed for enhanced vision analysis");
-  return {
-    petType: "pet",
-    location: "unknown",
-    activity: "posing",
-    people: "",
-    objects: "",
-    sceneDescription: "A pet in an everyday scene"
-  };
 }
 
-/**
- * Vision API with fallback models
- */
-export async function callVisionAPI(imageBase64: string, prompt: string) {
-  // This is an alias for analyzeImageWithVision for backward compatibility
-  return await analyzeImageWithVision(imageBase64, prompt);
+// Improved field extraction that handles JSON syntax
+function extractField(text, field, defaultValue) {
+  if (!text) return defaultValue;
+  
+  // Check for direct JSON patterns first
+  const jsonPatterns = [
+    new RegExp(`"${field}"\\s*:\\s*"([^"]*)"`, 'i'),  // "field": "value"
+    new RegExp(`"${field}"\\s*:\\s*([^",\\s]+)`, 'i')  // "field": value
+  ];
+  
+  for (const pattern of jsonPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  // Fall back to more general patterns
+  const generalPatterns = [
+    new RegExp(`${field}[:\\s]+"([^"]*)"`, 'i'),
+    new RegExp(`${field}[:\\s]+([^,\\n.]*)`, 'i')
+  ];
+  
+  for (const pattern of generalPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  return defaultValue;
 }
 
 /**
@@ -223,7 +267,21 @@ export async function generateStoryWithFallback(theme, petInfo, ownerInfo) {
 
       // Try to parse as JSON
       try {
-        return JSON.parse(response.choices[0].message.content || "{}");
+        // Get the raw content
+        const rawContent = response.choices[0].message.content || "";
+        
+        // Handle content wrapped in code blocks
+        let jsonContent = rawContent;
+        
+        // Remove markdown code block markers if present
+        if (jsonContent.includes('```')) {
+          const jsonMatch = jsonContent.match(/```(?:json)?\s*([^`]+)```/s);
+          if (jsonMatch && jsonMatch[1]) {
+            jsonContent = jsonMatch[1].trim();
+          }
+        }
+        
+        return JSON.parse(jsonContent);
       } catch (parseError) {
         // Handle non-JSON responses
         console.warn(`Response not in JSON format from ${model}, attempting to parse manually`);
@@ -342,7 +400,6 @@ export async function editStoryStyleWithFallback(storyText: string, style: strin
 
 export default {
   analyzeImageWithVision,
-  callVisionAPI,
   generateStoryWithFallback,
   stylizeImageWithFallback,
   editStoryStyleWithFallback
