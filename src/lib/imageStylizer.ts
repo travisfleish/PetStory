@@ -1,3 +1,4 @@
+// src/lib/imageStylizer.ts
 import { stylizeImageWithFallback } from '@/lib/services/openai-service';
 
 /**
@@ -16,7 +17,7 @@ interface PetInfo {
 }
 
 /**
- * Stylize a pet photo using AI
+ * Stylize a pet photo using AI with enhanced approaches
  */
 export const stylizeImage = async (imageBase64: string, style: string, petInfo: PetInfo = {}): Promise<string> => {
   try {
@@ -44,6 +45,9 @@ export const stylizeImage = async (imageBase64: string, style: string, petInfo: 
     if (petInfo.name || petInfo.type) {
       prompt += ` The ${petInfo.type || 'pet'} ${petInfo.name ? `named ${petInfo.name}` : ''} should be the main focus.`;
     }
+
+    // Add instructions for better variation results
+    prompt += ` IMPORTANT: Preserve the exact pet's appearance, position, and background from the original photo. Do not create a generic illustration.`;
 
     return await stylizeImageWithFallback(imageBase64, style, prompt);
 
