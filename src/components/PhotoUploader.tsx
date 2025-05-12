@@ -66,6 +66,7 @@ const PhotoUploader = ({ onPhotosSelected }: PhotoUploaderProps) => {
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors
           ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`}
+        style={{backgroundColor: '#ffffff'}}
       >
         <input {...getInputProps()} />
 
@@ -73,10 +74,10 @@ const PhotoUploader = ({ onPhotosSelected }: PhotoUploaderProps) => {
           <p className="text-lg text-blue-600 font-medium">Drop your pet photos here!</p>
         ) : (
           <div>
-            <p className="text-lg text-gray-700 font-medium mb-2">
+            <p className="text-lg font-medium mb-2" style={{color: '#000000'}}>
               Drag and drop your pet photos here, or click to select files
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{color: '#000000'}}>
               Supported formats: JPG, PNG, HEIC (max size: 10MB)
             </p>
           </div>
@@ -91,7 +92,7 @@ const PhotoUploader = ({ onPhotosSelected }: PhotoUploaderProps) => {
 
       {photos.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-3">Selected Photos ({photos.length})</h3>
+          <h3 className="text-lg font-semibold mb-3" style={{color: '#000000'}}>Selected Photos ({photos.length})</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {photos.map(photo => (
               <div key={photo.id} className="relative group">

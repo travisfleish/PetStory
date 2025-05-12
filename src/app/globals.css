@@ -19,8 +19,31 @@
   }
 }
 
+/* Override for upload and analysis pages - force light mode */
+body.light-mode-override {
+  --background: #ffffff !important;
+  --foreground: #171717 !important;
+  background: #ffffff !important;
+  color: #171717 !important;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Form controls always have dark text on light backgrounds */
+input, textarea, select {
+  color: #171717 !important;
+  background-color: #ffffff !important;
+}
+
+/* For the upload and photo analysis pages */
+.upload-page h1, .upload-page h2, .upload-page h3, .upload-page label, .upload-page p {
+  color: #171717 !important;
+}
+
+.upload-page .text-gray-600, .upload-page .text-gray-500, .upload-page .text-gray-700 {
+  color: #4b5563 !important;
 }

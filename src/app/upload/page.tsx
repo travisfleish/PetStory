@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PhotoUploader from '@/components/PhotoUploader';
 import { v4 as uuidv4 } from 'uuid';
+import './upload.css'; // Import the custom CSS
 
 interface Photo {
   id: string;
@@ -23,12 +24,31 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
 
+  // Force light mode with black text
+  useEffect(() => {
+    // Add a class to the body to enable our overrides
+    document.body.classList.add('upload-page');
+    document.documentElement.style.setProperty('color-scheme', 'light');
+
+    // Direct style overrides on the body element
+    document.body.style.backgroundColor = '#ffffff';
+    document.body.style.color = '#000000';
+
+    return () => {
+      document.body.classList.remove('upload-page');
+      document.body.style.removeProperty('backgroundColor');
+      document.body.style.removeProperty('color');
+      document.documentElement.style.removeProperty('color-scheme');
+    };
+  }, []);
+
+  // Your existing functions...
   const handlePhotosSelected = (selectedPhotos: Photo[]) => {
     setPhotos(selectedPhotos);
   };
 
-  // Helper function to compress images
   const compressImage = (file: File, options: {maxWidth: number, maxHeight: number, quality: number}): Promise<Blob> => {
+    // Your existing implementation...
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -67,6 +87,7 @@ export default function UploadPage() {
   };
 
   const convertPhotosToBase64 = async (photos: Photo[]) => {
+    // Your existing implementation...
     const base64Photos = [];
 
     for (const photo of photos) {
@@ -113,6 +134,7 @@ export default function UploadPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Your existing implementation...
     e.preventDefault();
 
     if (photos.length === 0) {
@@ -176,17 +198,17 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Create Your Pet Storybook</h1>
+    <div className="container mx-auto px-4 py-8 upload-container" style={{backgroundColor: '#ffffff', color: '#000000'}}>
+      <h1 className="text-3xl font-bold text-center mb-8" style={{color: '#000000'}}>Create Your Pet Storybook</h1>
 
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
+      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6 upload-container" style={{backgroundColor: '#ffffff'}}>
         <form onSubmit={handleSubmit}>
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Step 1: Tell us about your pet</h2>
+            <h2 className="text-xl font-semibold mb-4" style={{color: '#000000'}}>Step 1: Tell us about your pet</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="petName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="petName" className="block text-sm font-medium mb-1 pet-name-label" style={{color: '#000000'}}>
                   Pet's Name
                 </label>
                 <input
@@ -197,11 +219,12 @@ export default function UploadPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Buddy, Luna, Max"
                   required
+                  style={{color: '#000000', backgroundColor: '#ffffff'}}
                 />
               </div>
 
               <div>
-                <label htmlFor="petType" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="petType" className="block text-sm font-medium mb-1 pet-type-label" style={{color: '#000000'}}>
                   Pet Type
                 </label>
                 <select
@@ -209,18 +232,19 @@ export default function UploadPage() {
                   value={petType}
                   onChange={(e) => setPetType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{color: '#000000', backgroundColor: '#ffffff'}}
                 >
-                  <option value="dog">Dog</option>
-                  <option value="cat">Cat</option>
-                  <option value="bird">Bird</option>
-                  <option value="rabbit">Rabbit</option>
-                  <option value="hamster">Hamster</option>
-                  <option value="other">Other</option>
+                  <option value="dog" style={{color: '#000000'}}>Dog</option>
+                  <option value="cat" style={{color: '#000000'}}>Cat</option>
+                  <option value="bird" style={{color: '#000000'}}>Bird</option>
+                  <option value="rabbit" style={{color: '#000000'}}>Rabbit</option>
+                  <option value="hamster" style={{color: '#000000'}}>Hamster</option>
+                  <option value="other" style={{color: '#000000'}}>Other</option>
                 </select>
               </div>
 
               <div>
-                <label htmlFor="ownerName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ownerName" className="block text-sm font-medium mb-1 owner-name-label" style={{color: '#000000'}}>
                   Your Name (optional)
                 </label>
                 <input
@@ -230,17 +254,18 @@ export default function UploadPage() {
                   onChange={(e) => setOwnerName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Sarah, John"
+                  style={{color: '#000000', backgroundColor: '#ffffff'}}
                 />
               </div>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Step 2: Upload pet photos</h2>
-            <p className="text-gray-600 mb-4">
+            <h2 className="text-xl font-semibold mb-4" style={{color: '#000000'}}>Step 2: Upload pet photos</h2>
+            <p className="upload-instructions" style={{color: '#000000'}}>
               Upload 3-10 photos of your pet in different settings (park, home, beach, etc.)
             </p>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="upload-instructions text-sm mb-4" style={{color: '#000000'}}>
               For best results, use smaller images (under 2MB each) and limit to 10 photos.
             </p>
 
